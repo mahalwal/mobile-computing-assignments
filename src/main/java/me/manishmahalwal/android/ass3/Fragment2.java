@@ -5,20 +5,23 @@ import com.opencsv.CSVWriter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-//import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,15 +30,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 
 public class Fragment2 extends Fragment {
     private static final String TAG = "Fragment1";
     File file=null;
-
-
 
     Context mCtx;
     SQLiteOpenHelper mDatabase;
@@ -50,6 +53,10 @@ public class Fragment2 extends Fragment {
     private CheckBox checkBoxTrue, checkBoxFalse;
     private TextView textView;
     private Button submitQuiz;
+    ProgressBar simpleProgressBar2;
+
+//    int progress = 0;
+    int progress2 = 0;
 
     @Nullable
     @Override
@@ -59,6 +66,12 @@ public class Fragment2 extends Fragment {
 
         questions = new ArrayList<Questions>();
         mDatabase = new DatabaseManager(getActivity());
+
+//        simpleProgressBar = (ProgressBar) view.findViewById(R.id.simpleProgressBar); // initiate the progress bar
+//        simpleProgressBar.setMax(100); // 100 maximum value for the progress bar
+
+        simpleProgressBar2 = (ProgressBar) view.findViewById(R.id.simpleProgressBar2);
+        simpleProgressBar2.setMax(100);
 
         loadEmployeesFromDatabaseAgain();
 
@@ -156,11 +169,8 @@ public class Fragment2 extends Fragment {
         submitQuiz.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
+//                simpleProgressBar.setVisibility(View.VISIBLE);
                 Toast.makeText(getActivity(), "Generating CSV", Toast.LENGTH_SHORT).show();
-                exportDB();
-
-//                new UploadFileAsync().execute("");
-
 /*
 * Reference:
 * https://stackoverflow.com/questions/25398200/uploading-file-in-php-server-from-android-device
@@ -187,7 +197,7 @@ public class Fragment2 extends Fragment {
                             if (sourceFile.isFile()) {
 
                                 try {
-                                    String upLoadServerUri = "http://192.168.137.1/abc.php?";
+                                    String upLoadServerUri = "http://192.168.43.2/abc.php";
 
                                     // open a URL connection to the Servlet
                                     Log.e("UPLOAD", "idhar bhi aaya maakichu");
@@ -234,7 +244,7 @@ public class Fragment2 extends Fragment {
                                                 .min(bytesAvailable, maxBufferSize);
                                         bytesRead = fileInputStream.read(buffer, 0,
                                                 bufferSize);
-
+                                        Log.e("UPLOAD", "loop mein fasa pada hai");
                                     }
 
                                     // send multipart form data necesssary after file
@@ -245,18 +255,18 @@ public class Fragment2 extends Fragment {
 
                                     // Responses from the server (code and message)
                                     int serverResponseCode = conn.getResponseCode();
-                                    String serverResponseMessage = conn
-                                            .getResponseMessage();
+                                    String serverResponseMessage = conn.getResponseMessage();
 
-                                    if (serverResponseCode == 200) {
-
-                                        // messageText.setText(msg);
-                                        //Toast.makeText(ctx, "File Upload Complete.",
-                                        //      Toast.LENGTH_SHORT).show();
-
-                                        // recursiveDelete(mDirectory1);
-
+                                    Log.e("UPLOAD", "server response " + serverResponseMessage +" "+Integer.toString(serverResponseCode));
+                                    if (true) {
+                                        Toast.makeText(getActivity(), "File Upload Complete.", Toast.LENGTH_SHORT).show();
+                                        Log.e("UPLOAD", "upload done in serverresponsecode");
                                     }
+                                    else {
+                                        Toast.makeText(getActivity(), "File Upload  not Complete.", Toast.LENGTH_SHORT).show();
+                                        Log.e("UPLOAD", "upload not done error");
+                                    }
+
 
 
                                     // close the streams //
@@ -288,10 +298,32 @@ public class Fragment2 extends Fragment {
                     @Override
                     protected void onPostExecute(String result) {
 
+
+                        Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            public void run() {
+                                // yourMethod();
+                            }
+                        }, 1000000);   //5 seconds
+
+//                        FragmentTransaction ft = getFragmentManager().beginTransaction();
+//                        ft.replace(R.id.containter, new Fragment1(), "NewFragmentTag");
+//
+                        getActivity().deleteDatabase("QuestionsDatabase");
+
+//                        FragmentManager fm = getActivity().getSupportFragmentManager();
+//                        for(int i = 0; i < fm.getBackStackEntryCount(); ++i) {
+//                            fm.popBackStack();
+//                        }
+
+//
+//                        ft.commit();
+
                     }
 
                     @Override
                     protected void onPreExecute() {
+
                     }
 
                     @Override
@@ -299,16 +331,68 @@ public class Fragment2 extends Fragment {
                     }
 
                 }
-                Log.e("UPLOAD", "call hona shuru hua");
-                new UploadFileAsync().execute("");
-                Log.e("UPLOAD", "call hona khatam hua");
+
+
+                exportDB();
+//                setProgressValue(progress);
+
+
+                if(isNetworkConnected(getActivity())){
+
+                    setProgressValue2(progress2);
+                    simpleProgressBar2.setVisibility(View.VISIBLE);
+                    Log.e("UPLOAD", "call hona shuru hua");
+                    new UploadFileAsync().execute("");
+                    Toast.makeText(getActivity(), "Uploaded", Toast.LENGTH_SHORT).show();
+                    Log.e("UPLOAD", "call hona khatam hua");
+                }
+
+                else
+                {
+                    Toast.makeText(getActivity(), "No internet!", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
         return view;
     }
 
+//https://abhiandroid.com/ui/progressbar
 
+    private void setProgressValue2(final int progress2) {
+
+        // set the progress
+        simpleProgressBar2.setProgress(progress2);
+        // thread is used to change the progress2 value
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                setProgressValue2(progress2 + 100);
+            }
+        });
+        thread.start();
+    }
+
+    public boolean isNetworkConnected(Context context) {
+        final ConnectivityManager connectivityManager = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE));
+        return connectivityManager.getActiveNetworkInfo() != null && connectivityManager.getActiveNetworkInfo().isConnected();
+    }
+
+    public boolean isInternetAvailable() {
+        try {
+            InetAddress ipAddr = InetAddress.getByName("google.com");
+            //You can replace it with your name
+            return !ipAddr.equals("");
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
 /*
 *
@@ -316,6 +400,7 @@ public class Fragment2 extends Fragment {
 *   https://stackoverflow.com/a/31367824/6883821
 *
 *   */
+
     private void exportDB() {
 
 //        Log.e("CSV", "idhar to aaya bro");

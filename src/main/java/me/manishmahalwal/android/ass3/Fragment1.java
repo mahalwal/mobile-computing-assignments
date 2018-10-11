@@ -40,7 +40,6 @@ public class Fragment1 extends Fragment {
         initDatabase();
         loadQuestions(questions);
         initViews(view);
-
         return view;
     }
 
